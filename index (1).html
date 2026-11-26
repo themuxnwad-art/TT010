@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบจัดเก็บไฟล์โครงงาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: polished school portal: bright, calm, trustworthy
+   IDEA: a cloud filing cabinet; each submission is a folder that flies toward approval like a paper plane
+   PICTURE: gradient welcome banner with laptop, folder and paper plane; approval flight path below the table
+   COLOUR and TYPE: deep indigo sidebar, soft lavender ground, white cards, violet gradient actions, coral alerts; Kanit + IBM Plex Sans Thai
+   LAYOUT: fixed sidebar (icon rail when narrow), top bar, banner, 4 stats, upload, file table with tabs and paging, approval, insights */
+:root{color-scheme:light dark;
+--bg:light-dark(#f3f4fb,#0d0f1f);--card:light-dark(#ffffff,#161932);--ink:light-dark(#191c3a,#e9eaf7);--mute:light-dark(#6b7096,#9ea3c7);
+--line:light-dark(#e6e8f5,#262a4d);--soft:light-dark(#f6f7fe,#1c1f3d);--soft2:light-dark(#eef0ff,#232750);
+--pri:#5b4cf0;--pri2:#8b5cf6;--priT:light-dark(#4a3de0,#b3a8ff);--coral:#ff7a59;
+--ok:#16a36b;--warn:#e8930c;--info:#3b82f6;--bad:#e5484d;--sh:0 1px 2px rgba(30,30,90,.05),0 12px 32px -18px rgba(50,40,160,.28)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.55 "IBM Plex Sans Thai",system-ui,sans-serif;overflow-x:clip;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Kanit,"IBM Plex Sans Thai",sans-serif;font-weight:600;line-height:1.2;margin:0;text-wrap:balance}
+a{color:inherit}
+.app{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100vh}
+/* sidebar */
+aside{position:sticky;top:0;height:100vh;padding:24px 16px 18px;display:flex;flex-direction:column;gap:20px;color:#fff;overflow:hidden;
+ background:radial-gradient(120% 60% at 0% 0%,#6d5cff 0%,transparent 60%),radial-gradient(90% 50% at 100% 100%,#9b6bff 0%,transparent 60%),linear-gradient(180deg,#3a2fb8,#4a3fd6)}
+.brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.brand svg{width:96px;height:74px;filter:drop-shadow(0 10px 18px rgba(20,10,90,.35))}
+.brand h1{font-size:21px}.brand small{opacity:.75;font-size:12.5px;letter-spacing:.02em}
+nav{display:flex;flex-direction:column;gap:4px}
+nav a{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;text-decoration:none;font-weight:500;min-height:46px;color:rgba(255,255,255,.86);transition:background .2s,color .2s}
+nav a svg{width:21px;height:21px;flex:none}
+nav a:hover{background:rgba(255,255,255,.1);color:#fff}
+nav a.on{background:#fff;color:#3a2fb8;box-shadow:0 8px 20px -8px rgba(10,5,60,.5)}
+.quota{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:14px}
+.quota small{display:block;opacity:.8;font-size:13px}.quota b{font:600 17px Kanit,sans-serif}
+.quota .meter{background:rgba(255,255,255,.18)}.quota .meter div{background:#fff}
+.side-art{margin-top:auto}.side-art svg{width:100%;height:auto;display:block}
+/* main */
+main{padding:18px clamp(14px,2.4vw,32px) 28px;display:flex;flex-direction:column;gap:20px;max-width:1280px;width:100%}
+.top{display:flex;align-items:center;gap:12px}
+.crumb{margin-right:auto}.crumb small{color:var(--mute);font-size:13px;display:block}.crumb b{font:600 20px Kanit,sans-serif}
+.iconbtn{position:relative;width:46px;height:46px;display:grid;place-items:center;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh);color:var(--ink);padding:0}
+.iconbtn b{position:absolute;top:3px;right:3px;background:var(--coral);color:#fff;font-size:11px;min-width:19px;height:19px;border-radius:10px;display:grid;place-items:center;padding:0 5px;border:2px solid var(--card)}
+.me{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:5px 16px 5px 5px;box-shadow:var(--sh);max-width:300px}
+.me span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:600;color:#fff;flex:none;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:clamp(16px,2vw,24px);box-shadow:var(--sh)}
+/* hero */
+.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);align-items:center;gap:10px;min-height:190px;
+ background:radial-gradient(60% 120% at 100% 0%,light-dark(#e3dcff,#2c2463) 0%,transparent 70%),linear-gradient(110deg,light-dark(#eef0ff,#1b1e44),light-dark(#f7f2ff,#231d4a));border-color:light-dark(#e2defc,#2d2a5c)}
+.hero h2{font-size:clamp(26px,3.3vw,38px);color:light-dark(#2a2190,#fff)}
+.hero p{margin:8px 0 18px;color:var(--mute);max-width:52ch}
+.hero .ctas{display:flex;gap:10px;flex-wrap:wrap}
+.hero svg{width:100%;height:auto;max-height:200px}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.stat{display:flex;align-items:center;gap:14px;position:relative;overflow:hidden}
+.ic{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;flex:none}.ic svg{width:26px;height:26px}
+.stat small{display:block;color:var(--mute);font-size:13.5px}
+.stat b{font:600 27px/1.15 Kanit,sans-serif;white-space:nowrap}.stat b i{font-style:normal;font-size:15px;font-weight:500;color:var(--mute);margin-left:4px}
+.stat em{display:block;font-style:normal;font-size:12.5px;color:var(--mute);margin-top:2px}
+.meter{height:7px;background:var(--soft2);border-radius:9px;margin-top:7px;overflow:hidden}.meter div{height:100%;background:linear-gradient(90deg,var(--pri),var(--pri2));border-radius:9px;transition:width .6s}
+/* section heads */
+.sec{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sec h3{font-size:19px;display:flex;gap:10px;align-items:center;margin-right:auto}
+.hic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--soft2);color:var(--priT);flex:none}.hic svg{width:21px;height:21px}
+.sub{color:var(--mute);font-size:14px}
+/* controls */
+button,.btn{font:inherit;font-weight:600;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;white-space:nowrap;transition:transform .15s,box-shadow .15s,background .15s}
+button:hover,.btn:hover{transform:translateY(-1px)}
+.primary{background:linear-gradient(135deg,var(--pri),var(--pri2));border:0;color:#fff;box-shadow:0 10px 22px -10px rgba(91,76,240,.8)}
+.ghost{background:light-dark(rgba(255,255,255,.7),rgba(255,255,255,.06))}
+.okb{background:var(--ok);border:0;color:#fff}.danger{color:var(--bad);border-color:light-dark(#f5c2c3,#5a2a30);background:transparent}
+button:disabled{opacity:.5;cursor:not-allowed;transform:none}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-height:44px;width:100%}
+textarea{min-height:100px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--pri);outline:0;box-shadow:0 0 0 4px light-dark(#e4e0ff,#2e2a66)}
+:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.search{position:relative;width:260px}.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--mute)}.search input{padding-left:40px;border-radius:99px}
+#fy{width:auto;border-radius:99px}
+/* upload */
+.drop{border:2px dashed light-dark(#c6c0fb,#3f3a85);border-radius:18px;padding:26px 18px;display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap;background:light-dark(linear-gradient(180deg,#fafaff,#f4f2ff),linear-gradient(180deg,#1a1c3c,#1d1a42));text-align:left;transition:border-color .2s,background .2s}
+.drop.over{border-color:var(--coral);background:light-dark(#fff4f0,#2d1f2a)}
+.drop svg.big{width:64px;height:64px;flex:none}
+.drop .t b{display:block;font:600 17px Kanit,sans-serif}.drop .t span{color:var(--mute);font-size:14px}
+.types{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center}
+.types span{font:600 11.5px/1 Kanit,sans-serif;padding:6px 9px;border-radius:8px;color:#fff}
+/* tabs */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px}
+.tabs button{min-height:38px;padding:0 14px;border-radius:99px;font-weight:500;font-size:14px;background:var(--soft);border-color:transparent}
+.tabs button span{font-size:12px;background:var(--card);border-radius:99px;padding:1px 8px;margin-left:2px;color:var(--mute)}
+.tabs button.on{background:var(--ink);color:var(--card)}.tabs button.on span{background:rgba(255,255,255,.2);color:inherit}
+/* table */
+.scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}
+table{width:100%;min-width:940px;border-collapse:separate;border-spacing:0;font-size:14.5px}
+th{background:var(--soft);color:var(--mute);font-weight:600;text-align:left;padding:12px 14px;white-space:nowrap;font-size:13.5px}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr{transition:background .15s}tbody tr:hover td{background:var(--soft)}
+tr.sel td{background:light-dark(#f7f5ff,#1d1f45)}
+.fname{display:flex;align-items:center;gap:12px;font-weight:500}
+.fname small{display:block;color:var(--mute);font-weight:400;font-size:13px}
+.fi{width:36px;height:42px;flex:none;position:relative}.fi svg{width:100%;height:100%}
+.fi b{position:absolute;left:0;right:0;bottom:6px;text-align:center;font:700 8.5px/1 Kanit,sans-serif;color:#fff;text-transform:uppercase;letter-spacing:.02em}
+.who{display:flex;align-items:center;gap:10px}.who .av{width:30px;height:30px;font-size:13px}
+.when{white-space:nowrap;font-size:14px}.when small{display:block;color:var(--mute);font-size:12.5px}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:600;white-space:nowrap}
+.pill svg{width:14px;height:14px}
+.acts{display:flex;gap:6px}
+.acts button,.acts a{min-height:36px;padding:0 13px;font-size:13.5px;border-radius:99px;background:var(--soft2);border:0;color:var(--priT);font-weight:600}
+.acts svg{width:15px;height:15px}
+.acts .more{width:36px;padding:0}
+.empty{text-align:center;padding:44px 12px;color:var(--mute)}.empty b{display:block;color:var(--ink);font:600 17px Kanit,sans-serif;margin-bottom:4px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px;font-size:14px;color:var(--mute)}
+.pager div{display:flex;gap:6px}.pager button{min-height:36px;min-width:36px;padding:0 10px;border-radius:10px;font-weight:500}.pager button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+/* approval */
+.appr{display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:24px;align-items:center}
+.pinfo{background:var(--soft);border-radius:16px;padding:16px}
+.pinfo h4{font:600 17px/1.3 Kanit,sans-serif;margin:8px 0 6px}
+.pinfo p{margin:0;font-size:13.5px;color:var(--mute)}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;color:#fff}
+.track{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.step{text-align:center;position:relative;padding:0 4px}
+.step::before{content:"";position:absolute;top:23px;left:-50%;right:50%;height:4px;background:var(--line);border-radius:4px}
+.step:first-child::before{display:none}
+.step.done::before,.step.cur::before{background:linear-gradient(90deg,var(--pri),var(--pri2))}
+.dot{width:48px;height:48px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;position:relative;background:var(--soft2);color:var(--mute);border:4px solid var(--card)}
+.dot svg{width:22px;height:22px}
+.done .dot{background:linear-gradient(135deg,var(--pri),var(--pri2));color:#fff}
+.cur .dot{background:var(--card);color:var(--pri);box-shadow:0 0 0 3px var(--pri),0 0 0 9px light-dark(#ece9ff,#262357)}
+.ret .dot{background:var(--bad);color:#fff;box-shadow:0 0 0 6px light-dark(#fde3e4,#3b1e24)}
+.step b{display:block;font-size:14.5px;font-weight:600}.step small{color:var(--mute);font-size:12.5px;display:block;line-height:1.45}
+.cur b{color:var(--priT)}.ret b{color:var(--bad)}
+/* insights */
+.grid3{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.2fr) minmax(0,1fr);gap:20px}
+.donut{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.donut svg{width:150px;height:150px;flex:none}
+.legend{display:flex;flex-direction:column;gap:8px;font-size:14px;flex:1}
+.legend div{display:flex;align-items:center;gap:8px}.legend i{width:10px;height:10px;border-radius:3px;flex:none}.legend b{margin-left:auto;font-variant-numeric:tabular-nums}
+.bars{display:flex;flex-direction:column;gap:11px}
+.bar{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 30px;gap:10px;align-items:center;font-size:13.5px}
+.bar .t{height:10px;background:var(--soft2);border-radius:9px;overflow:hidden}.bar .t div{height:100%;border-radius:9px;transition:width .6s}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.feed li{display:flex;gap:12px;font-size:14px;line-height:1.45}
+.feed .fd{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none}.feed .fd svg{width:17px;height:17px}
+.feed small{display:block;color:var(--mute);font-size:12.5px}
+footer{text-align:center;color:var(--mute);font-size:13px;padding-top:4px}
+/* sheets */
+.overlay{position:fixed;inset:0;background:rgba(18,16,50,.5);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:5vh 12px;overflow-y:auto;z-index:20}
+.overlay.on{display:flex}
+.sheet{background:var(--card);border-radius:24px;width:min(740px,100%);padding:clamp(20px,3vw,32px);box-shadow:0 40px 80px -30px rgba(10,5,60,.6);animation:pop .22s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}}
+.sheet h2{font-size:clamp(22px,3vw,27px)}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:18px}
+.x{min-width:44px;padding:0;font-size:22px;border-radius:50%}
+.form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.form label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+.full{grid-column:1/-1}
+.flist{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.flist li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;position:relative;overflow:hidden}
+.flist .n{flex:1;overflow-wrap:anywhere;font-weight:500}.flist .s{font-size:13px;color:var(--mute);white-space:nowrap}
+.flist a{color:var(--priT);font-weight:600;white-space:nowrap}
+.flist .prog{position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--pri),var(--pri2));transition:width .3s}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:20px}
+dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 18px;margin:0 0 16px;background:var(--soft);border-radius:14px;padding:14px 16px}dt{color:var(--mute);font-size:14px}dd{margin:0;font-weight:500}
+.abs{white-space:pre-wrap;margin:0 0 18px;color:var(--ink)}
+.err{color:var(--bad);font-size:14px;margin:8px 0 0;min-height:1em}
+.review{border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:18px}
+.review h4{font:600 16px Kanit,sans-serif;margin:0 0 10px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,10px);background:var(--ink);color:var(--card);padding:12px 20px;border-radius:14px;opacity:0;pointer-events:none;transition:.25s;z-index:30;display:flex;gap:8px;align-items:center;box-shadow:0 20px 40px -16px rgba(0,0,0,.5)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.skel{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--soft) 0%,var(--soft2) 50%,var(--soft) 100%);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.float{animation:fl 5s ease-in-out infinite}@keyframes fl{50%{transform:translateY(-7px)}}
+@media(max-width:1100px){.grid3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.grid3>:last-child{grid-column:1/-1}.stat{flex-direction:column;align-items:flex-start;gap:10px}}
+@media(max-width:860px){.app{grid-template-columns:76px minmax(0,1fr)}aside{padding:18px 10px;align-items:center}.brand h1,.brand small,.side-art,nav a span,.quota{display:none}.brand svg{width:52px;height:40px}nav a{justify-content:center;padding:12px}.hero{grid-template-columns:minmax(0,1fr) 200px}.appr{grid-template-columns:minmax(0,1fr)}.grid3{grid-template-columns:minmax(0,1fr)}.crumb b{font-size:18px}}
+@media(max-width:600px){.app{grid-template-columns:58px minmax(0,1fr)}aside{padding:14px 6px}.brand svg{width:42px;height:32px}nav a{padding:10px 8px}main{padding:12px 10px 24px;gap:16px}
+ .hero{grid-template-columns:minmax(0,1fr)}.hero svg{max-height:130px;order:-1}.stats{grid-template-columns:repeat(4,minmax(160px,1fr));overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}.stat{scroll-snap-align:start}
+ .form{grid-template-columns:minmax(0,1fr)}.search{width:100%}.me span:last-child{max-width:90px}.crumb small{display:none}
+ .step b{font-size:12.5px}.step small{font-size:11.5px}.dot{width:40px;height:40px}.step::before{top:19px}.bar{grid-template-columns:minmax(0,110px) minmax(0,1fr) 28px}.drop{text-align:center}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-home" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3 2 11.5h3V21h5.5v-6h3v6H19v-9.5h3z"/></symbol>
+ <symbol id="i-folder" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2.2h6.5A2.5 2.5 0 0 1 21 8.7v8.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></symbol>
+ <symbol id="i-plane" viewBox="0 0 24 24"><path fill="currentColor" d="M22 2 2 10.5l7 2.6L19 6l-8 8.2V21l3.6-4.4 4.4 2.4z"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path fill="currentColor" d="M4 13h3.5v8H4zm6.2-5h3.6v13h-3.6zM16.5 3H20v18h-3.5z"/></symbol>
+ <symbol id="i-cloud" viewBox="0 0 24 24"><path fill="currentColor" d="M7 19a5 5 0 0 1-.6-9.96A6.5 6.5 0 0 1 18.8 9 4.5 4.5 0 0 1 18 19h-5v-5h2.5L12 10l-3.5 4H11v5z"/></symbol>
+ <symbol id="i-doc" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5zM8 13h8v1.6H8zm0 3.5h8v1.6H8z"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24"><path fill="currentColor" d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7.5 0a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM1.5 20c0-3.6 3.4-6.5 7.5-6.5s7.5 2.9 7.5 6.5zm16.3 0c0-2-.8-3.8-2.1-5.2 3.7-.6 6.8 1.7 6.8 5.2z"/></symbol>
+ <symbol id="i-db" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c4.4 0 8 1.5 8 3.5S16.4 9 12 9 4 7.5 4 5.5 7.6 2 12 2zM4 8.2C5.6 9.5 8.7 10.5 12 10.5s6.4-1 8-2.3v4.3c0 2-3.6 3.5-8 3.5s-8-1.5-8-3.5zm0 7c1.6 1.3 4.7 2.3 8 2.3s6.4-1 8-2.3v3.3c0 2-3.6 3.5-8 3.5s-8-1.5-8-3.5z"/></symbol>
+ <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 7v5l3.5 2"/></symbol>
+ <symbol id="i-bell" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.5-2.5h-5A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.8V3.5a1.5 1.5 0 0 0-3 0v.7A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></symbol>
+ <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+ <symbol id="i-eye" viewBox="0 0 24 24"><path fill="currentColor" d="M12 5C6.5 5 2.7 9.2 1.5 12c1.2 2.8 5 7 10.5 7s9.3-4.2 10.5-7C21.3 9.2 17.5 5 12 5zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.2a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z"/></symbol>
+ <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></symbol>
+ <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2.4"/><path stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m20 20-3.5-3.5"/></symbol>
+ <symbol id="i-undo" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+ <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+ <symbol id="i-file" viewBox="0 0 36 42"><path d="M4 0h20l12 12v26a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4z" fill="currentColor"/><path d="M24 0v8a4 4 0 0 0 4 4h8z" fill="#fff" fill-opacity=".45"/></symbol>
+</svg>
+<div class="app">
+<aside>
+  <div class="brand">
+    <svg viewBox="0 0 110 84" aria-hidden="true"><path d="M26 70a18 18 0 0 1-2-35.9A26 26 0 0 1 74 27a20 20 0 0 1 8 43z" fill="#fff"/><path d="M38 38h12l4 4h18a3 3 0 0 1 3 3v19a3 3 0 0 1-3 3H38a3 3 0 0 1-3-3V41a3 3 0 0 1 3-3z" fill="#5b4cf0"/><path d="M35 48h40v16a3 3 0 0 1-3 3H38a3 3 0 0 1-3-3z" fill="#8b7cff"/><path d="M95 8l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM86 26l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z" fill="#fff"/></svg>
+    <h1>ระบบจัดเก็บไฟล์โครงงาน</h1><small>Project File Storage</small>
+  </div>
+  <nav aria-label="เมนูหลัก">
+    <a href="#home" class="on" data-sec="home"><svg><use href="#i-home"/></svg><span>หน้าหลัก</span></a>
+    <a href="#files" data-sec="files"><svg><use href="#i-folder"/></svg><span>ไฟล์โครงงาน</span></a>
+    <a href="#approval" data-sec="approval"><svg><use href="#i-plane"/></svg><span>ขออนุมัติ</span></a>
+    <a href="#stats" data-sec="stats"><svg><use href="#i-chart"/></svg><span>สถิติการใช้งาน</span></a>
+  </nav>
+  <div class="quota"><small>พื้นที่จัดเก็บ</small><b id="qS">–</b><div class="meter"><div id="qM" style="width:0"></div></div></div>
+  <div class="side-art" aria-hidden="true"><svg viewBox="0 0 210 160"><g opacity=".95"><rect x="22" y="10" width="34" height="42" rx="6" fill="#a9b0ff" transform="rotate(-12 39 31)"/><rect x="62" y="4" width="34" height="42" rx="6" fill="#d4d7ff" transform="rotate(8 79 25)"/><path d="M30 26h18M30 33h14" stroke="#5b4cf0" stroke-width="3" stroke-linecap="round" transform="rotate(-12 39 31)"/><path d="M70 20h18M70 27h14" stroke="#5b4cf0" stroke-width="3" stroke-linecap="round" transform="rotate(8 79 25)"/></g><ellipse cx="114" cy="150" rx="86" ry="7" fill="#1e1680" opacity=".35"/><path d="M38 146h152l-14-18H52z" fill="#2c2296"/><rect x="56" y="62" width="114" height="70" rx="9" fill="#241b85"/><rect x="63" y="69" width="100" height="56" rx="5" fill="#e6e8ff"/><path d="M97 85h12l4 4h16a2 2 0 0 1 2 2v19a2 2 0 0 1-2 2H97a2 2 0 0 1-2-2V87a2 2 0 0 1 2-2z" fill="#f2a93b"/><path d="M95 96h36v14a2 2 0 0 1-2 2H97a2 2 0 0 1-2-2z" fill="#ffd27a"/><path d="M188 36l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff"/></svg></div>
+</aside>
+
+<main>
+  <div class="top" id="home">
+    <div class="crumb"><small>ระบบจัดเก็บไฟล์โครงงาน</small><b id="hello">สวัสดี</b></div>
+    <button class="iconbtn" type="button" id="bellBtn" aria-label="รายการที่รอดำเนินการ"><svg width="22" height="22"><use href="#i-bell"/></svg><b id="bell" hidden>0</b></button>
+    <span class="me"><span class="av" id="av" style="background:linear-gradient(135deg,#5b4cf0,#ff7a59)">?</span><span id="meName">ผู้ใช้งาน</span></span>
+  </div>
+
+  <section class="card hero">
+    <div>
+      <h2>ยินดีต้อนรับเข้าสู่ระบบ</h2>
+      <p>จัดเก็บไฟล์โครงงานอย่างเป็นระเบียบ ค้นหาง่าย ใช้งานสะดวก และติดตามสถานะการอนุมัติได้ทุกขั้นตอน</p>
+      <div class="ctas"><button type="button" class="primary" id="ctaUp"><svg width="18" height="18"><use href="#i-cloud"/></svg>อัปโหลดโครงงาน</button><a class="btn ghost" href="#approval"><svg width="18" height="18"><use href="#i-plane"/></svg>ติดตามสถานะ</a></div>
+    </div>
+    <svg viewBox="0 0 340 200" aria-hidden="true">
+      <defs><linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d5cff"/><stop offset="1" stop-color="#3a2fb8"/></linearGradient><linearGradient id="gp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7cff"/><stop offset="1" stop-color="#5b4cf0"/></linearGradient></defs>
+      <circle cx="190" cy="96" r="84" fill="#fff" opacity=".45"/>
+      <path d="M150 150c46-28 104-26 158-86" fill="none" stroke="#9d92ff" stroke-width="2.5" stroke-dasharray="6 8" stroke-linecap="round"/>
+      <g class="float"><path d="M290 46 336 24 318 74l-12-14-7 12-2-17z" fill="url(#gp)"/><path d="M290 46l26 14-21-2z" fill="#3a2fb8"/></g>
+      <ellipse cx="160" cy="182" rx="122" ry="8" fill="#5b4cf0" opacity=".14"/>
+      <rect x="78" y="40" width="166" height="112" rx="12" fill="url(#gs)"/><rect x="88" y="50" width="146" height="92" rx="6" fill="#f2f3ff"/>
+      <rect x="98" y="60" width="44" height="6" rx="3" fill="#d6d9ff"/><rect x="98" y="72" width="30" height="6" rx="3" fill="#e4e6ff"/>
+      <path d="M52 160h220l-20-10H72z" fill="#7a6cf5"/><rect x="48" y="159" width="228" height="11" rx="5" fill="#3a2fb8"/>
+      <g class="float" style="animation-delay:-1.5s"><path d="M132 76h24l8 8h30a5 5 0 0 1 5 5v38a5 5 0 0 1-5 5h-62a5 5 0 0 1-5-5V81a5 5 0 0 1 5-5z" fill="#f2a93b"/><path d="M127 94h72v33a5 5 0 0 1-5 5h-62a5 5 0 0 1-5-5z" fill="#ffd27a"/><rect x="150" y="104" width="26" height="4" rx="2" fill="#f2a93b" opacity=".6"/></g>
+      <g transform="rotate(-8 40 100)"><rect x="22" y="78" width="40" height="50" rx="6" fill="#fff" stroke="#d6d9ff" stroke-width="2"/><path d="M30 92h24M30 100h18M30 108h24M30 116h14" stroke="#9d92ff" stroke-width="3" stroke-linecap="round"/></g>
+      <rect x="262" y="104" width="34" height="42" rx="6" fill="#fff" stroke="#ffd0c2" stroke-width="2"/><rect x="262" y="128" width="34" height="12" fill="#ff7a59"/><text x="279" y="137.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#fff" font-family="Kanit,sans-serif">PDF</text>
+      <path d="M252 20l2.4 6 6 2.4-6 2.4-2.4 6-2.4-6-6-2.4 6-2.4zM56 40l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" fill="#fff"/>
+    </svg>
+  </section>
+
+  <section class="stats" aria-live="polite">
+    <div class="card stat"><span class="ic" style="background:light-dark(#e9e7ff,#26235a);color:#5b4cf0"><svg><use href="#i-doc"/></svg></span><div><small>ไฟล์ทั้งหมด</small><b id="sF">–</b><em id="sF2">&nbsp;</em></div></div>
+    <div class="card stat"><span class="ic" style="background:light-dark(#f1e6ff,#2d2052);color:#8b5cf6"><svg><use href="#i-users"/></svg></span><div><small>ผู้ใช้งานทั้งหมด</small><b id="sU">–</b><em id="sU2">&nbsp;</em></div></div>
+    <div class="card stat"><span class="ic" style="background:light-dark(#dcf5ea,#163a2e);color:#16a36b"><svg><use href="#i-db"/></svg></span><div style="flex:1;width:100%"><small>พื้นที่ที่ใช้ไป</small><b id="sS" style="font-size:21px">–</b><div class="meter"><div id="sM" style="width:0"></div></div></div></div>
+    <div class="card stat"><span class="ic" style="background:light-dark(#fff1d9,#3a2c14);color:#e8930c"><svg><use href="#i-clock"/></svg></span><div><small>รอตรวจ</small><b id="sA">–</b><em id="sA2">&nbsp;</em></div></div>
+  </section>
+
+  <section class="card" id="upload">
+    <div class="sec"><h3><span class="hic"><svg><use href="#i-cloud"/></svg></span>อัปโหลดไฟล์โครงงาน</h3></div>
+    <div class="drop" id="drop">
+      <svg class="big" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="light-dark(#ece9ff,#2a2660)" style="fill:var(--soft2)"/><path d="M20 42a8 8 0 0 1-1-15.9A11 11 0 0 1 40 24a8 8 0 0 1 4 18z" fill="#8b7cff"/><path d="M32 46V32m-6 5 6-6 6 6" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="t"><b>ลากไฟล์มาวางที่นี่</b><span>หรือกดปุ่มเพื่อเลือกไฟล์จากเครื่อง (เลือกได้หลายไฟล์)</span></div>
+      <button type="button" class="primary" id="pick"><svg width="18" height="18"><use href="#i-cloud"/></svg>เลือกไฟล์</button>
+    </div>
+    <div class="types"><span class="sub" style="margin-right:4px">รองรับ:</span><span style="background:#e5484d">PDF</span><span style="background:#8b5cf6">JPG</span><span style="background:#8b5cf6">PNG</span><span style="background:#f08c3a">MP4</span><span style="background:#16a36b">CSV</span><span style="background:#7b819f">TXT</span><span class="sub" style="margin-left:6px">ขนาดไม่เกิน 20 MB ต่อไฟล์ · ไฟล์ Word/PowerPoint ให้บันทึกเป็น PDF ก่อน</span></div>
+    <input type="file" id="fin" multiple hidden accept=".pdf,image/*,video/*,.txt,.md,.csv,.json">
+  </section>
+
+  <section class="card" id="files">
+    <div class="sec"><h3><span class="hic"><svg><use href="#i-folder"/></svg></span>รายการไฟล์โครงงาน</h3>
+      <label class="search"><svg><use href="#i-search"/></svg><input id="q" type="search" placeholder="ค้นหาไฟล์ โครงงาน ผู้ส่ง…" aria-label="ค้นหา"></label>
+      <select id="fy" aria-label="ปีการศึกษา"><option value="">ทุกปีการศึกษา</option></select>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="กรองตามสถานะ"></div>
+    <div class="scroll"><table><thead><tr><th>ลำดับ</th><th>ชื่อไฟล์</th><th>ผู้ส่ง</th><th>วันที่ส่ง</th><th class="num">ขนาดไฟล์</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="tb"></tbody></table></div>
+    <div class="pager"><span id="pgInfo"></span><div id="pg"></div></div>
+    <p class="sub" id="status" style="margin:10px 0 0"></p>
+  </section>
+
+  <section class="card" id="approval">
+    <div class="sec"><h3><span class="hic"><svg><use href="#i-plane"/></svg></span>สถานะการขออนุมัติ</h3><select id="pSel" aria-label="เลือกโครงงาน" style="width:auto;max-width:100%;border-radius:99px"></select><button type="button" id="pMore" style="border-radius:99px;color:var(--priT);min-height:44px">ดูรายละเอียดทั้งหมด →</button></div>
+    <div class="appr" id="appr"><p class="empty" style="grid-column:1/-1"><b>ยังไม่มีโครงงานที่ส่งขออนุมัติ</b>เมื่ออัปโหลดโครงงานแล้ว สถานะจะแสดงที่นี่</p></div>
+  </section>
+
+  <section class="grid3" id="stats">
+    <div class="card"><div class="sec"><h3><span class="hic"><svg><use href="#i-chart"/></svg></span>สถานะโครงงาน</h3></div><div class="donut" id="donut"></div></div>
+    <div class="card"><div class="sec"><h3><span class="hic"><svg><use href="#i-chart"/></svg></span>แยกตามหมวด</h3></div><div class="bars" id="bCat"></div></div>
+    <div class="card"><div class="sec"><h3><span class="hic"><svg><use href="#i-clock"/></svg></span>กิจกรรมล่าสุด</h3></div><ul class="feed" id="feed"></ul></div>
+  </section>
+  <footer>ระบบจัดเก็บไฟล์โครงงาน · ข้อมูลอัปเดตแบบเรียลไทม์</footer>
+</main>
+</div>
+
+<div class="overlay" id="ovAdd" role="dialog" aria-modal="true" aria-labelledby="tAdd"><div class="sheet">
+  <div class="head"><div><h2 id="tAdd">ส่งโครงงานขออนุมัติ</h2><p class="sub" style="margin:4px 0 0">กรอกข้อมูลโครงงานให้ครบ ช่องที่มี * ต้องกรอก</p></div><button class="x" type="button" data-close aria-label="ปิด">×</button></div>
+  <form id="fAdd" class="form">
+    <label class="full">ชื่อโครงงาน *<input name="title" required maxlength="200" placeholder="เช่น ระบบรดน้ำต้นไม้อัตโนมัติด้วย IoT"></label>
+    <label>ผู้จัดทำ *<input name="authors" required maxlength="300" placeholder="คั่นแต่ละคนด้วยจุลภาค"></label>
+    <label>ครูที่ปรึกษา<input name="advisor" maxlength="150"></label>
+    <label>หมวด *<select name="category" required id="selCat"></select></label>
+    <label>ปีการศึกษา *<input name="year" required inputmode="numeric" pattern="25[0-9]{2}" maxlength="4"></label>
+    <label class="full">ระดับชั้น / สาขา<input name="level" maxlength="100" placeholder="เช่น ม.6/2 หรือ วิศวกรรมคอมพิวเตอร์"></label>
+    <label class="full">บทคัดย่อ<textarea name="abstract" maxlength="5000" placeholder="สรุปที่มา วัตถุประสงค์ และผลของโครงงานสั้น ๆ"></textarea></label>
+    <div class="full"><div style="display:flex;align-items:center;gap:10px"><b style="font-size:14px">ไฟล์แนบ</b><button type="button" id="pick2" style="min-height:36px;border-radius:99px;font-size:14px">+ เพิ่มไฟล์</button></div><ul class="flist" id="pending"></ul></div>
+  </form>
+  <p class="err" id="eAdd"></p>
+  <div class="row"><button type="button" data-close>ยกเลิก</button><button type="submit" form="fAdd" class="primary" id="save"><svg width="18" height="18"><use href="#i-plane"/></svg>ส่งขออนุมัติ</button></div>
+</div></div>
+
+<div class="overlay" id="ovView" role="dialog" aria-modal="true" aria-labelledby="tView"><div class="sheet">
+  <div class="head"><div><p id="vCat" style="margin:0 0 8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"></p><h2 id="tView"></h2></div><button class="x" type="button" data-close aria-label="ปิด">×</button></div>
+  <dl id="vMeta"></dl>
+  <p class="abs" id="vAbs"></p>
+  <div style="display:flex;align-items:center;gap:10px"><h3 style="font-size:17px;margin-right:auto">ไฟล์ในโครงงาน</h3><button type="button" id="more" style="min-height:38px;border-radius:99px;font-size:14px">+ แนบไฟล์เพิ่ม</button></div>
+  <ul class="flist" id="vFiles"></ul>
+  <div class="review" id="vRev"></div>
+  <p class="err" id="eView"></p>
+  <div class="row"><button type="button" class="danger" id="del">ลบโครงงาน</button><button type="button" data-close>ปิด</button></div>
+</div></div>
+<input type="file" id="fin2" multiple hidden accept=".pdf,image/*,video/*,.txt,.md,.csv,.json">
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+const CATS=[["วิทยาศาสตร์","#16a36b"],["คอมพิวเตอร์และเทคโนโลยี","#3b82f6"],["คณิตศาสตร์","#8b5cf6"],["วิศวกรรมและสิ่งประดิษฐ์","#f08c3a"],["สังคมศึกษา","#d9468f"],["ภาษาและวรรณกรรม","#14a3b8"],["ศิลปะและการออกแบบ","#d99a0b"],["อื่น ๆ","#7b819f"]];
+const STEPS=["ส่งคำขออนุมัติ","ตรวจสอบโดยครูที่ปรึกษา","พิจารณาโดยหัวหน้าสาขา","อนุมัติแล้ว"];
+const ST={1:["รอตรวจ","#e8930c","clock"],2:["อยู่ระหว่างพิจารณา","#3b82f6","clock"],4:["อนุมัติแล้ว","#16a36b","check"],r:["ส่งกลับแก้ไข","#e5484d","undo"]};
+const EXTC={pdf:"#e5484d",png:"#8b5cf6",jpg:"#8b5cf6",jpeg:"#8b5cf6",gif:"#8b5cf6",webp:"#8b5cf6",svg:"#8b5cf6",mp4:"#f08c3a",mov:"#f08c3a",webm:"#f08c3a",txt:"#7b819f",md:"#7b819f",csv:"#16a36b",json:"#14a3b8"};
+const AVC=["#5b4cf0","#8b5cf6","#e5484d","#f08c3a","#16a36b","#3b82f6","#d9468f","#14a3b8"];
+const MAX=20*1024*1024,OK=/^(application\/pdf|image\/|video\/|text\/(plain|markdown|csv)|application\/json)/,PER=8;
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const size=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':b<1073741824?(b/1048576).toFixed(1)+' MB':(b/1073741824).toFixed(2)+' GB';
+const ext=n=>{const m=/\.([a-z0-9]{1,5})$/i.exec(n||'');return m?m[1].toLowerCase():''};
+const fileIc=n=>{const e=ext(n);return`<span class="fi" style="color:${EXTC[e]||'#a3a8c8'}"><svg><use href="#i-file"/></svg><b>${esc(e||'—')}</b></span>`};
+const url=id=>/^[A-Za-z0-9_-]+$/.test(String(id??''))?'/_blob/'+id:null;
+const catColor=c=>(CATS.find(x=>x[0]===c)||CATS[7])[1];
+const stKey=p=>p.returned?'r':([1,2,4].includes(p.stage)?p.stage:1);
+const pill=p=>{const s=ST[stKey(p)];return`<span class="pill" style="color:${s[1]};background:${s[1]}1c"><svg><use href="#i-${s[2]}"/></svg>${s[0]}</span>`};
+const hash=s=>[...String(s)].reduce((a,c)=>a+c.charCodeAt(0),0);
+const avatar=n=>{const t=String(n||'?').trim();return`<span class="av" style="background:${AVC[hash(t)%AVC.length]}">${esc(t.charAt(0)||'?')}</span>`};
+const dt=t=>t?new Date(t):null;
+const dShort=t=>dt(t)?.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})||'';
+const tShort=t=>dt(t)?'เวลา '+dt(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'';
+const ago=t=>{if(!t)return'';const m=Math.round((Date.now()-t)/60000);return m<1?'เมื่อสักครู่':m<60?m+' นาทีที่แล้ว':m<1440?Math.round(m/60)+' ชั่วโมงที่แล้ว':m<10080?Math.round(m/1440)+' วันที่แล้ว':dShort(t)};
+const toast=t=>{const e=$('#toast');e.innerHTML=`<svg width="18" height="18"><use href="#i-check"/></svg>`;e.append(t);e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2600)};
+
+let db=null,assets=null,user=null,me=null,canWrite=true,isAdmin=false,projects=[],pending=[],openId=null,names={},selId=null,tab='',page=1,loaded=false;
+
+$('#selCat').innerHTML=CATS.map(c=>`<option>${esc(c[0])}</option>`).join('');
+
+async function loadNames(){
+  if(!user)return;const ids=[...new Set(projects.map(p=>p.createdBy).filter(Boolean))].filter(i=>!(i in names));
+  if(!ids.length)return;try{const ps=await user.profiles(ids);for(const i of ids)names[i]=ps?.[i]?.name||'';render()}catch{}
+}
+const sender=p=>names[p.createdBy]||p.sender||String(p.authors||'').split(',')[0].trim()||'ผู้ใช้งาน';
+
+function filtered(useTab=true){
+  const q=$('#q').value.trim().toLowerCase(),y=$('#fy').value;
+  return projects.filter(p=>(!useTab||!tab||String(stKey(p))===tab)&&(!y||p.year===y)&&(!q||[p.title,p.authors,p.advisor,p.level,p.category,sender(p),...(p.files||[]).map(f=>f.name)].join(' ').toLowerCase().includes(q)));
+}
+function render(){
+  const all=projects.flatMap(p=>p.files||[]),bytes=all.reduce((a,f)=>a+(+f.size||0),0),week=Date.now()-7*864e5;
+  const users=new Set(projects.map(p=>p.createdBy||p.sender).filter(Boolean)).size;
+  const cap=Math.max(100,Math.ceil(bytes/1048576/100)*100),pct=Math.min(100,bytes/1048576/cap*100);
+  if(loaded){
+    $('#sF').innerHTML=`${all.length.toLocaleString('th-TH')}<i>ไฟล์</i>`;$('#sF2').textContent=`จาก ${projects.length} โครงงาน`;
+    $('#sU').innerHTML=`${users}<i>คน</i>`;$('#sU2').textContent=`ส่งใหม่ ${projects.filter(p=>p.createdAt>week).length} โครงงานในสัปดาห์นี้`;
+    $('#sS').innerHTML=`${esc(size(bytes))}<i>/ ${cap} MB</i>`;$('#sM').style.width=pct+'%';
+    $('#qS').textContent=`${size(bytes)} / ${cap} MB`;$('#qM').style.width=pct+'%';
+    $('#sA').innerHTML=`${projects.filter(p=>stKey(p)===1).length}<i>โครงงาน</i>`;$('#sA2').textContent=`อนุมัติแล้ว ${projects.filter(p=>stKey(p)===4).length} โครงงาน`;
+  }
+  const todo=isAdmin?projects.filter(p=>!p.returned&&p.stage!==4).length:projects.filter(p=>p.createdBy===me&&p.returned).length;
+  $('#bell').hidden=!todo;$('#bell').textContent=todo;
+  const years=[...new Set(projects.map(p=>p.year).filter(Boolean))].sort().reverse(),fy=$('#fy'),cy=fy.value;
+  fy.innerHTML='<option value="">ทุกปีการศึกษา</option>'+years.map(y=>`<option${y===cy?' selected':''}>${esc(y)}</option>`).join('');
+  const base=filtered(false);
+  $('#tabs').innerHTML=[['','ทั้งหมด',base.length],...Object.entries(ST).map(([k,v])=>[k,v[0],base.filter(p=>String(stKey(p))===k).length])].map(([k,l,n])=>`<button type="button" role="tab" aria-selected="${k===tab}" class="${k===tab?'on':''}" data-tab="${k}">${l}<span>${n}</span></button>`).join('');
+  const rows=filtered().flatMap(p=>(p.files&&p.files.length?p.files:[null]).map(f=>[p,f]));
+  const pages=Math.max(1,Math.ceil(rows.length/PER));if(page>pages)page=pages;
+  const view=rows.slice((page-1)*PER,page*PER);
+  $('#tb').innerHTML=!loaded?Array.from({length:4},()=>`<tr>${'<td><div class="skel"></div></td>'.repeat(7)}</tr>`).join(''):
+  !projects.length?`<tr><td colspan="7" class="empty"><b>ยังไม่มีไฟล์โครงงาน</b>เริ่มด้วยการอัปโหลดไฟล์ด้านบน</td></tr>`:!rows.length?`<tr><td colspan="7" class="empty"><b>ไม่พบรายการ</b>ลองเปลี่ยนคำค้นหรือตัวกรอง</td></tr>`:
+  view.map(([p,f],i)=>{const u=f&&url(f.id),t=(f&&f.at)||p.createdAt,s=sender(p);
+    return`<tr${p.id===selId?' class="sel"':''}><td class="num" style="text-align:left;color:var(--mute)">${(page-1)*PER+i+1}</td>
+    <td><div class="fname">${fileIc(f?f.name:'')}<div><div>${f?esc(f.name):'ยังไม่มีไฟล์แนบ'}</div><small>${esc(p.title)}${p.sample?' · ข้อมูลตัวอย่าง':''}</small></div></div></td>
+    <td><div class="who">${avatar(s)}<span>${esc(s)}</span></div></td>
+    <td><div class="fname" style="font-weight:400;gap:8px"><svg width="18" height="18" style="color:var(--mute);flex:none"><use href="#i-cal"/></svg><div class="when">${dShort(t)}<small>${tShort(t)}</small></div></div></td>
+    <td class="num">${f?size(+f.size||0):'–'}</td><td>${pill(p)}</td>
+    <td><div class="acts">${u?`<a href="${u}" target="_blank" rel="noopener"><svg><use href="#i-eye"/></svg>ดูไฟล์</a><a href="${u}" target="_blank" rel="noopener"><svg><use href="#i-down"/></svg>ดาวน์โหลด</a>`:`<button type="button" data-view="${esc(p.id)}"><svg><use href="#i-eye"/></svg>ดูรายละเอียด</button>`}<button type="button" class="more" data-view="${esc(p.id)}" aria-label="รายละเอียดโครงงาน"><svg><use href="#i-dots"/></svg></button></div></td></tr>`}).join('');
+  $('#pgInfo').textContent=rows.length?`แสดง ${(page-1)*PER+1}–${Math.min(page*PER,rows.length)} จาก ${rows.length} ไฟล์`:'';
+  $('#pg').innerHTML=pages>1?[`<button type="button" data-pg="${page-1}" ${page===1?'disabled':''} aria-label="ก่อนหน้า">‹</button>`,...Array.from({length:pages},(_,i)=>`<button type="button" data-pg="${i+1}" class="${i+1===page?'on':''}">${i+1}</button>`),`<button type="button" data-pg="${page+1}" ${page===pages?'disabled':''} aria-label="ถัดไป">›</button>`].join(''):'';
+  const ps=$('#pSel');ps.innerHTML=projects.map(p=>`<option value="${esc(p.id)}"${p.id===selId?' selected':''}>${esc(p.title)}</option>`).join('');
+  ps.style.display=$('#pMore').style.display=projects.length?'':'none';
+  drawTrack();drawInsights();
+}
+function drawTrack(){
+  const p=projects.find(x=>x.id===selId)||projects.find(x=>x.createdBy===me)||projects[0];
+  if(!p){if(loaded)$('#appr').innerHTML='<p class="empty" style="grid-column:1/-1"><b>ยังไม่มีโครงงานที่ส่งขออนุมัติ</b>เมื่ออัปโหลดโครงงานแล้ว สถานะจะแสดงที่นี่</p>';return}
+  selId=p.id;const stage=p.stage===4?4:(p.stage||1),t=p.steps||{0:p.createdAt};
+  const steps=STEPS.map((s,k)=>{
+    const done=k<stage&&(k<3||stage===4),cur=!done&&k===stage,ret=cur&&p.returned;
+    const cls=ret?'ret':done?'done':cur?'cur':'';
+    const sub=done?`${dShort(t[k])}<br>${tShort(t[k])}`:ret?'ส่งกลับแก้ไข':cur?'อยู่ระหว่างดำเนินการ':k===3?'รอประกาศผล':'รอดำเนินการ';
+    return`<div class="step ${cls}"><div class="dot"><svg><use href="#i-${ret?'x':done?'check':cur?'clock':'check'}"/></svg></div><b>${s}</b><small>${sub}</small></div>`}).join('');
+  $('#appr').innerHTML=`<div class="pinfo"><span class="chip" style="background:${catColor(p.category)}">${esc(p.category)}</span><h4>${esc(p.title)}</h4><p>ผู้ส่ง: ${esc(sender(p))}</p>${p.advisor?`<p>ครูที่ปรึกษา: ${esc(p.advisor)}</p>`:''}<p style="margin-top:8px">${pill(p)}</p></div><div class="track">${steps}</div>`;
+}
+function drawInsights(){
+  if(!loaded)return;
+  const items=Object.entries(ST).map(([k,v])=>[v[0],projects.filter(p=>String(stKey(p))===k).length,v[1]]),tot=projects.length||1;
+  let off=0;const C=2*Math.PI*52;
+  const arcs=items.map(([,n,c])=>{const len=n/tot*C,s=`<circle cx="75" cy="75" r="52" fill="none" stroke="${c}" stroke-width="20" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 75 75)"/>`;off+=len;return n?s:''}).join('');
+  $('#donut').innerHTML=`<svg viewBox="0 0 150 150" role="img" aria-label="สัดส่วนสถานะโครงงาน"><circle cx="75" cy="75" r="52" fill="none" stroke="var(--soft2)" stroke-width="20"/>${arcs}<text x="75" y="72" text-anchor="middle" font-family="Kanit,sans-serif" font-size="28" font-weight="600" fill="var(--ink)">${projects.length}</text><text x="75" y="92" text-anchor="middle" font-size="12" fill="var(--mute)">โครงงาน</text></svg><div class="legend">${items.map(([l,n,c])=>`<div><i style="background:${c}"></i>${l}<b>${n}</b></div>`).join('')}</div>`;
+  const cr=CATS.map(c=>[c[0],projects.filter(p=>p.category===c[0]).length,c[1]]).filter(r=>r[1]).sort((a,b)=>b[1]-a[1]),m=Math.max(1,...cr.map(r=>r[1]));
+  $('#bCat').innerHTML=cr.length?cr.map(r=>`<div class="bar"><span>${esc(r[0])}</span><span class="t"><div style="width:${r[1]/m*100}%;background:${r[2]}"></div></span><b class="num">${r[1]}</b></div>`).join(''):'<p class="sub">ยังไม่มีข้อมูล</p>';
+  const ev=[];
+  for(const p of projects){const t=p.steps||{},s=sender(p);
+    ev.push([p.createdAt,'plane','#5b4cf0',`<b>${esc(s)}</b> ส่งโครงงาน “${esc(p.title)}”`]);
+    if(t[1])ev.push([t[1],'check','#3b82f6',`ครูที่ปรึกษาตรวจผ่าน “${esc(p.title)}”`]);
+    if(p.stage===4&&t[3])ev.push([t[3],'check','#16a36b',`อนุมัติโครงงาน “${esc(p.title)}”`]);
+    if(p.returned)ev.push([p.updatedAt,'undo','#e5484d',`ส่งกลับแก้ไข “${esc(p.title)}”`]);}
+  ev.sort((a,b)=>(b[0]||0)-(a[0]||0));
+  $('#feed').innerHTML=ev.length?ev.slice(0,5).map(e=>`<li><span class="fd" style="background:${e[2]}1c;color:${e[2]}"><svg><use href="#i-${e[1]}"/></svg></span><div>${e[3]}<small>${ago(e[0])}</small></div></li>`).join(''):'<li class="sub">ยังไม่มีกิจกรรม</li>';
+}
+$('#q').addEventListener('input',()=>{page=1;render()});$('#fy').addEventListener('input',()=>{page=1;render()});
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){tab=b.dataset.tab;page=1;render()}});
+$('#pg').addEventListener('click',e=>{const b=e.target.closest('[data-pg]');if(b&&!b.disabled){page=+b.dataset.pg;render();$('#files').scrollIntoView({block:'start'})}});
+$('#pSel').addEventListener('change',e=>{selId=e.target.value;render()});
+$('#pMore').addEventListener('click',()=>{if(selId)openView(selId)});
+$('#tb').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)openView(b.dataset.view)});
+$('#bellBtn').addEventListener('click',()=>{tab=isAdmin?'1':'r';page=1;render();$('#files').scrollIntoView({block:'start'})});
+const secs=['home','files','approval','stats'].map(id=>document.getElementById(id));
+const spy=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting)document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.sec===e.target.id))},{rootMargin:'-30% 0px -60% 0px'});
+secs.forEach(s=>s&&spy.observe(s));
+
+function open(id){$(id).classList.add('on');document.body.style.overflow='hidden'}
+function close(){document.querySelectorAll('.overlay.on').forEach(o=>o.classList.remove('on'));document.body.style.overflow='';openId=null}
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',close));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)close()}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+
+function check(files){const ok=[],bad=[];for(const f of files){if(f.size>MAX)bad.push(f.name+' (เกิน 20 MB)');else if(!OK.test(f.type||''))bad.push(f.name+' (ชนิดไฟล์ไม่รองรับ)');else ok.push(f)}return{ok,bad}}
+function drawPending(st){
+  $('#pending').innerHTML=pending.length?pending.map((f,i)=>`<li>${fileIc(f.name)}<span class="n">${esc(f.name)}</span><span class="s">${st&&st[i]?esc(st[i][0]):size(f.size)}</span>${st?`<span class="prog" style="width:${st[i]?st[i][1]:0}%"></span>`:`<button type="button" class="x" data-rm="${i}" aria-label="เอาออก">×</button>`}</li>`).join(''):'<li class="s" style="justify-content:center">ยังไม่ได้เลือกไฟล์</li>';
+}
+function startAdd(files){
+  if(!db){toast('คลังข้อมูลยังไม่พร้อม');return}
+  if(!canWrite){toast('คุณมีสิทธิ์ดูอย่างเดียว');return}
+  const{ok,bad}=check(files||[]);
+  $('#fAdd').reset();$('#fAdd').year.value=String(new Date().getFullYear()+543);
+  pending=ok;drawPending();$('#eAdd').textContent=bad.length?'ข้ามไฟล์: '+bad.join(', '):'';
+  $('#pick2').style.display=assets?'':'none';open('#ovAdd');
+}
+$('#pending').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b){pending.splice(+b.dataset.rm,1);drawPending()}});
+let addMode='new';
+$('#pick').addEventListener('click',()=>{addMode='new';$('#fin').click()});
+$('#ctaUp').addEventListener('click',()=>startAdd([]));
+$('#pick2').addEventListener('click',()=>{addMode='more';$('#fin').click()});
+$('#fin').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';if(addMode==='more'){const{ok,bad}=check(fs);pending.push(...ok);drawPending();$('#eAdd').textContent=bad.length?'ข้ามไฟล์: '+bad.join(', '):''}else startAdd(fs)});
+const drop=$('#drop');
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');startAdd([...e.dataTransfer.files])});
+
+async function uploadAll(files,onStep){
+  const out=[];
+  for(let i=0;i<files.length;i++){onStep(i,['กำลังอัปโหลด…',40]);const r=await assets.upload(files[i]);
+    out.push({id:r.id,name:files[i].name,size:r.sizeBytes??files[i].size,type:r.contentType||files[i].type,by:me||null,at:Date.now()});onStep(i,['เสร็จแล้ว ✓',100])}
+  return out;
+}
+$('#fAdd').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const d=Object.fromEntries([...new FormData(e.target)].map(([k,v])=>[k,String(v).trim()]));
+  if(!d.title||!d.authors){$('#eAdd').textContent='กรุณากรอกชื่อโครงงานและผู้จัดทำ';return}
+  if(pending.length&&!assets){$('#eAdd').textContent='บัญชีนี้ไม่มีสิทธิ์อัปโหลดไฟล์';return}
+  const btn=$('#save');btn.disabled=true;$('#eAdd').textContent='';const st=[];
+  try{
+    const files=pending.length?await uploadAll(pending,(i,t)=>{st[i]=t;drawPending(st)}):[];
+    const now=Date.now();
+    const ref=await db.collection('projects').add({...d,files,stage:1,returned:false,note:'',steps:{0:now},createdBy:me||null,createdAt:now,updatedAt:now});
+    selId=ref.id;tab='';page=1;close();toast('ส่งโครงงานขออนุมัติแล้ว');
+  }catch(err){$('#eAdd').textContent=err?.code==='quota_exceeded'?'พื้นที่คลังเต็ม ลบโครงงานเก่าบางส่วนก่อน':'บันทึกไม่สำเร็จ: '+(err?.message||'ลองใหม่อีกครั้ง');drawPending()}
+  finally{btn.disabled=false}
+});
+
+function openView(id,keep){
+  const p=projects.find(x=>x.id===id);if(!p)return;openId=id;selId=id;
+  $('#vCat').innerHTML=`<span class="chip" style="background:${catColor(p.category)}">${esc(p.category)}</span>${pill(p)}${p.sample?'<span class="sub">ข้อมูลตัวอย่าง</span>':''}`;
+  $('#tView').textContent=p.title;
+  const rows=[['ผู้จัดทำ',p.authors],['ครูที่ปรึกษา',p.advisor],['ปีการศึกษา',p.year],['ระดับชั้น / สาขา',p.level],['ผู้ส่ง',sender(p)],['วันที่ส่ง',p.createdAt?dShort(p.createdAt)+' '+tShort(p.createdAt):'']].filter(r=>r[1]);
+  $('#vMeta').innerHTML=rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('');
+  $('#vAbs').textContent=p.abstract||'';
+  const fs=p.files||[];
+  $('#vFiles').innerHTML=fs.length?fs.map((f,i)=>{const u=url(f.id);return`<li>${fileIc(f.name)}<span class="n">${esc(f.name)}</span><span class="s">${size(+f.size||0)}</span>${u?`<a href="${u}" target="_blank" rel="noopener">เปิดไฟล์</a>`:'<span class="s">ไม่มีไฟล์จริง</span>'}${canWrite?`<button type="button" class="x" data-rmf="${i}" aria-label="ลบไฟล์">×</button>`:''}</li>`}).join(''):'<li class="s" style="justify-content:center">ยังไม่มีไฟล์แนบ</li>';
+  $('#more').style.display=assets&&canWrite?'':'none';
+  $('#del').style.display=canWrite&&(isAdmin||p.createdBy===me)?'':'none';
+  const k=stKey(p),mine=p.createdBy===me;
+  let rv=`<h4>การตรวจสอบ</h4>`+(p.note?`<p style="margin:0 0 10px"><b>ความเห็นผู้ตรวจ:</b> ${esc(p.note)}</p>`:'');
+  if(isAdmin&&k!==4&&k!=='r')rv+=`<label style="display:block;font-size:14px;font-weight:600">ความเห็นผู้ตรวจ<textarea id="rNote" maxlength="1000" style="min-height:70px;margin-top:6px" placeholder="จำเป็นเมื่อส่งกลับแก้ไข"></textarea></label><div class="row" style="margin-top:12px"><button type="button" class="danger" data-act="return"><svg width="16" height="16"><use href="#i-undo"/></svg>ส่งกลับแก้ไข</button><button type="button" class="okb" data-act="approve"><svg width="16" height="16"><use href="#i-check"/></svg>${k===1?'ครูที่ปรึกษาตรวจผ่าน':'อนุมัติโครงงาน'}</button></div>`;
+  else if(k==='r'&&(mine||isAdmin))rv+=`<p style="margin:0 0 10px;color:var(--mute)">แก้ไขไฟล์ตามความเห็นแล้วกดส่งใหม่เพื่อเข้าสู่การตรวจอีกครั้ง</p><div class="row" style="margin-top:0"><button type="button" class="primary" data-act="resubmit"><svg width="16" height="16"><use href="#i-plane"/></svg>ส่งใหม่อีกครั้ง</button></div>`;
+  else rv+=`<p style="margin:0;color:var(--mute)">${k===4?'โครงงานนี้ได้รับการอนุมัติแล้ว 🎉':k==='r'?'รอผู้ส่งแก้ไขและส่งใหม่':'อยู่ระหว่างการตรวจสอบ'}</p>`;
+  $('#vRev').innerHTML=rv;
+  if(!keep)$('#eView').textContent='';
+  render();open('#ovView');
+}
+$('#vRev').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const p=projects.find(x=>x.id===openId);if(!p)return;
+  const now=Date.now(),steps={...(p.steps||{0:p.createdAt})},note=($('#rNote')?.value||'').trim();
+  let up;
+  if(b.dataset.act==='approve'){if((p.stage||1)===1){steps[1]=now;up={stage:2}}else{steps[2]=now;steps[3]=now;up={stage:4}}up.returned=false;up.steps=steps;if(note)up.note=note}
+  else if(b.dataset.act==='return'){if(!note){$('#eView').textContent='กรุณาใส่ความเห็นก่อนส่งกลับแก้ไข';return}up={returned:true,note}}
+  else up={returned:false,stage:1,note:'',steps:{0:now,1:null,2:null,3:null}};
+  b.disabled=true;
+  try{await db.doc('projects/'+p.id).update({...up,updatedAt:now});toast('อัปเดตสถานะแล้ว')}catch{$('#eView').textContent='อัปเดตไม่สำเร็จ';b.disabled=false}
+});
+$('#more').addEventListener('click',()=>$('#fin2').click());
+$('#fin2').addEventListener('change',async e=>{
+  const id=openId,p=projects.find(x=>x.id===id);const{ok,bad}=check([...e.target.files]);e.target.value='';if(!p)return;
+  $('#eView').textContent=bad.length?'ข้ามไฟล์: '+bad.join(', '):'';if(!ok.length)return;
+  const b=$('#more');b.disabled=true;
+  try{const nf=await uploadAll(ok,(i,t)=>{b.textContent=`${t[0]} (${i+1}/${ok.length})`});await db.doc('projects/'+id).update({files:[...(p.files||[]),...nf],updatedAt:Date.now()});toast('แนบไฟล์แล้ว')}
+  catch(err){$('#eView').textContent='แนบไฟล์ไม่สำเร็จ: '+(err?.message||'ลองใหม่')}
+  finally{b.disabled=false;b.textContent='+ แนบไฟล์เพิ่ม'}
+});
+let armed=null;
+$('#vFiles').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-rmf]');if(!b)return;const p=projects.find(x=>x.id===openId);if(!p)return;
+  const i=+b.dataset.rmf,f=(p.files||[])[i];if(!f)return;
+  if(armed!==b){armed=b;b.textContent='ลบ?';b.style.padding='0 12px';b.style.color='var(--bad)';return}
+  armed=null;
+  try{await db.doc('projects/'+p.id).update({files:p.files.filter((_,j)=>j!==i),updatedAt:Date.now()});if(url(f.id)){try{await assets?.delete(f.id)}catch{}}toast('ลบไฟล์แล้ว')}
+  catch{$('#eView').textContent='ลบไฟล์ไม่สำเร็จ'}
+});
+$('#del').addEventListener('click',async()=>{
+  const b=$('#del'),p=projects.find(x=>x.id===openId);if(!p)return;
+  if(!b.dataset.arm){b.dataset.arm='1';b.textContent='กดอีกครั้งเพื่อยืนยันการลบ';setTimeout(()=>{delete b.dataset.arm;b.textContent='ลบโครงงาน'},4000);return}
+  delete b.dataset.arm;b.textContent='ลบโครงงาน';
+  try{await db.doc('projects/'+p.id).delete();for(const f of p.files||[]){if(url(f.id)){try{await assets?.delete(f.id)}catch{}}}if(selId===p.id)selId=null;close();toast('ลบโครงงานแล้ว')}
+  catch(err){$('#eView').textContent='ลบไม่สำเร็จ: '+(err?.message||'')}
+});
+
+(async()=>{
+  render();
+  const [d,a,u]=await Promise.all([claude.use('db'),claude.use('assets'),claude.use('user')]);
+  db=d;assets=a;user=u;
+  if(u){
+    me=await u.id();isAdmin=!!(await u.canEdit());const w=await u.can('data.write');if(w===false)canWrite=false;
+    try{const m=await u.me();const n=(m&&m.name)||'';if(n){$('#meName').textContent=n;$('#av').textContent=n.trim().charAt(0);$('#hello').textContent='สวัสดี, '+n.split(' ')[0]}}catch{}
+  }
+  if(!db){loaded=true;$('#status').textContent='เปิดหน้านี้ผ่าน claude.ai และลงชื่อเข้าใช้ เพื่อดูและส่งโครงงาน';$('#pick').disabled=$('#ctaUp').disabled=true;render();return}
+  if(!canWrite){$('#upload').style.display='none';$('#ctaUp').style.display='none'}
+  const timer=setTimeout(()=>{$('#status').textContent='ยังเชื่อมต่อคลังข้อมูลไม่ได้ กำลังลองใหม่…'},10000);
+  db.collection('projects').orderBy('createdAt','desc').onSnapshot(s=>{
+    if(!s.metadata.fromCache)clearTimeout(timer);
+    loaded=true;projects=s.docs.map(x=>({id:x.id,...x.data()}));
+    $('#status').textContent=(isAdmin?'คุณเป็นผู้ตรวจ: กด ⋯ เพื่ออนุมัติหรือส่งกลับแก้ไข':canWrite?'กด ⋯ เพื่อดูรายละเอียดและติดตามสถานะ':'คุณมีสิทธิ์ดูอย่างเดียว')+(assets||!canWrite?'':' · บัญชีนี้ไม่มีสิทธิ์อัปโหลดไฟล์');
+    if(openId&&$('#ovView').classList.contains('on')){projects.some(p=>p.id===openId)?openView(openId,true):close()}else render();
+    loadNames();
+  },err=>{clearTimeout(timer);loaded=true;render();$('#status').textContent='โหลดข้อมูลไม่ได้ ('+(err?.code||'error')+')'});
+})();
+}
+</script>
+</body>
+</html>
